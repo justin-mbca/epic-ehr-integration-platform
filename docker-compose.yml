@@ -1,0 +1,176 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: epic-postgres
+    environment:
+      POSTGRES_DB: epic_ehr
+      POSTGRES_USER: epic_user
+      POSTGRES_PASSWORD: epic_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - epic-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U epic_user -d epic_ehr"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis for Caching and Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: epic-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - epic-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # API Gateway (Node.js)
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: epic-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: epic_ehr
+      DB_USER: epic_user
+      DB_PASSWORD: epic_password
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key
+      FHIR_SERVER_URL: http://fhir-server:8084
+      HL7_PROCESSOR_URL: http://hl7-processor:8001
+      EPIC_CONNECTOR_URL: http://epic-connector:8002
+      AUDIT_SERVICE_URL: http://audit-service:8003
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - epic-network
+    restart: unless-stopped
+
+  # FHIR Server (Java Spring Boot)
+  fhir-server:
+    build:
+      context: ./services/fhir-server
+      dockerfile: Dockerfile
+    container_name: epic-fhir-server
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/epic_ehr
+      SPRING_DATASOURCE_USERNAME: epic_user
+      SPRING_DATASOURCE_PASSWORD: epic_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "admin:admin123", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - epic-network
+    restart: unless-stopped
+
+  # HL7 Processor (Python FastAPI)
+  hl7-processor:
+    build:
+      context: ./services/hl7-processor
+      dockerfile: Dockerfile
+    container_name: epic-hl7-processor
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://epic_user:epic_password@postgres:5432/epic_ehr
+      REDIS_URL: redis://redis:6379
+      FHIR_SERVER_URL: http://fhir-server:8084
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - epic-network
+    restart: unless-stopped
+
+  # EPIC Connector (Python FastAPI)
+  epic-connector:
+    build:
+      context: ./services/epic-connector
+      dockerfile: Dockerfile
+    container_name: epic-epic-connector
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql://epic_user:epic_password@postgres:5432/epic_ehr
+      REDIS_URL: redis://redis:6379
+      EPIC_CLIENT_ID: your-epic-client-id
+      EPIC_CLIENT_SECRET: your-epic-client-secret
+      EPIC_BASE_URL: https://fhir.epic.com/interconnect-fhir-oauth
+      FHIR_SERVER_URL: http://fhir-server:8084
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - epic-network
+    restart: unless-stopped
+
+  # Audit Service (Python FastAPI)
+  audit-service:
+    build:
+      context: ./services/audit-service
+      dockerfile: Dockerfile
+    container_name: epic-audit-service
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql://epic_user:epic_password@postgres:5432/epic_ehr
+      REDIS_URL: redis://redis:6379
+      ENCRYPTION_KEY: EYsU4V_aALWBl8jv3I8031atGztH7eDVQJEPBFh9Ad0=
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - epic-network
+    restart: unless-stopped
+
+networks:
+  epic-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

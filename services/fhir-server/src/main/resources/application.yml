@@ -1,0 +1,73 @@
+# FHIR Server Configuration
+spring:
+  application:
+    name: epic-fhir-server
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://postgres:5432/epic_db
+    username: epic_user
+    password: epic_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      
+  # JPA Configuration  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+    show-sql: false
+
+  # Security Configuration
+  security:
+    user:
+      name: admin
+      password: admin123
+      roles: ADMIN
+
+# Server Configuration
+server:
+  port: 8084
+  servlet:
+    context-path: /
+    
+# Logging Configuration
+logging:
+  level:
+    ca.uhn.fhir: INFO
+    org.springframework.security: INFO
+    com.epicehr.fhir: DEBUG
+    root: INFO
+    
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      
+---
+# Docker Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/epic_db
+    
+logging:
+  level:
+    root: INFO
+    ca.uhn.fhir: INFO

@@ -1,0 +1,57 @@
+# Audit Service Requirements  
+# Web framework
+fastapi==0.95.2
+uvicorn[standard]==0.22.0
+
+# Database and ORM
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Analytics and data processing
+pandas==2.1.4
+numpy==1.24.4
+
+# Logging and monitoring
+structlog==23.2.0
+prometheus-client==0.19.0
+
+# Security and compliance
+cryptography==46.0.1
+pyjwt==2.8.0
+
+# Validation and serialization
+pydantic==1.10.15
+marshmallow==3.20.1
+
+# HTTP client
+httpx==0.25.2
+requests==2.31.0
+
+# Configuration
+python-decouple==3.8
+pyyaml==6.0.1
+
+# Task queue and caching
+celery==5.3.4
+redis==5.0.1
+
+# Date/time handling
+python-dateutil==2.8.2
+
+# Email notifications
+# fastapi-mail==1.4.1
+
+# Report generation
+reportlab==4.0.8
+jinja2==3.1.2
+
+# Development dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Data export
+openpyxl==3.1.2

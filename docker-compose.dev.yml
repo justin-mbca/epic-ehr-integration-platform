@@ -1,0 +1,45 @@
+services:
+  # Development Database
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: epic-postgres-dev
+    environment:
+      POSTGRES_DB: epic_ehr_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - epic-dev-network
+
+  # Development Redis
+  redis-dev:
+    image: redis:7-alpine
+    container_name: epic-redis-dev
+    ports:
+      - "6380:6379"
+    networks:
+      - epic-dev-network
+
+  # PgAdmin for Database Management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: epic-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@epic.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres-dev
+    networks:
+      - epic-dev-network
+
+networks:
+  epic-dev-network:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
