@@ -42,4 +42,29 @@ jobs:
           POSTGRES_DSN: postgresql://demo:demo@localhost:5432/demo
         run: |
           cd projects/smart-fhir-ingest/projects
-          python3 integration_test_runner.py
+          mkdir -p ./logs
+          python3 integration_test_runner.py 2>&1 | tee ./logs/integration-runner.log
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs
+          path: projects/smart-fhir-ingest/projects/logs/
+      - name: Compress logs and upload (always)
+        if: always()
+        run: |
+          cd projects/smart-fhir-ingest/projects || exit 0
+          if [ -d logs ]; then
+            tar -czf integration-logs.tgz logs || true
+            echo "Uploading integration-logs.tgz"
+            ls -lh integration-logs.tgz || true
+            echo "::set-output name=artifact::integration-logs.tgz"
+          fi
+        shell: bash
+      - name: Upload compressed logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs-tgz
+          path: projects/smart-fhir-ingest/projects/integration-logs.tgz

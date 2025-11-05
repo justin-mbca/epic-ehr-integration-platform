@@ -56,17 +56,18 @@ jobs:
         run: |
           set -e
           echo "Waiting for fhir-server to become healthy (timeout 60s)..."
+          mkdir -p $GITHUB_WORKSPACE/artifacts
           for i in $(seq 1 30); do
-            if curl -sSf http://localhost:8080/fhir/metadata -o /tmp/fhir_metadata.json; then
+            if curl -sSf http://localhost:8080/fhir/metadata -o $GITHUB_WORKSPACE/artifacts/fhir_metadata.json; then
               echo "FHIR metadata endpoint is responsive"
-              cat /tmp/fhir_metadata.json | head -n 200
+              head -n 200 $GITHUB_WORKSPACE/artifacts/fhir_metadata.json
               exit 0
             fi
-            echo "not ready yet ($i)";
+            echo "not ready yet ($i)" | tee -a $GITHUB_WORKSPACE/artifacts/fhir_smoke.log;
             sleep 2
           done
-          echo "FHIR server did not become ready in time" >&2
-          docker logs fhir-server-ci || true
+          echo "FHIR server did not become ready in time" | tee -a $GITHUB_WORKSPACE/artifacts/fhir_smoke.log >&2
+          docker logs fhir-server-ci >> $GITHUB_WORKSPACE/artifacts/fhir_server_container.log || true
           exit 1
 
       - name: Save Docker image artifact (tar)
@@ -83,8 +84,12 @@ jobs:
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
           docker logs fhir-server-ci > $GITHUB_WORKSPACE/artifacts/fhir-server-ci.log || true
-          if [ -f /tmp/fhir_metadata.json ]; then
-            mv /tmp/fhir_metadata.json $GITHUB_WORKSPACE/artifacts/fhir-metadata.json || true
+          # move smoke outputs if present
+          if [ -f $GITHUB_WORKSPACE/artifacts/fhir_metadata.json ]; then
+            echo "Found fhir_metadata.json"
+          fi
+          if [ -f $GITHUB_WORKSPACE/artifacts/fhir_smoke.log ]; then
+            echo "Found fhir_smoke.log"
           fi
 
       - name: Teardown container
@@ -98,3 +103,16 @@ jobs:
         with:
           name: fhir-server-image-and-logs
           path: artifacts/
+      - name: Compress artifacts
+        if: always()
+        run: |
+          cd services/fhir-server
+          tar -czf $GITHUB_WORKSPACE/artifacts/fhir-server-artifacts.tgz artifacts || true
+        shell: bash
+
+      - name: Upload compressed artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-server-artifacts-tgz
+          path: $GITHUB_WORKSPACE/artifacts/fhir-server-artifacts.tgz

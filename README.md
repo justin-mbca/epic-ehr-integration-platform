@@ -87,6 +87,39 @@ curl http://localhost:8003/health        # Audit Service
 
 ## 📋 Services Details
 
+## 🖥️ How to run & view (quick reference)
+
+Start everything (recommended):
+
+```bash
+# from repo root
+./quick-start.sh
+# or manually
+docker compose up -d
+```
+
+Open in your browser:
+
+- API Gateway (proxy & oauth): http://localhost:3000
+   - Health: http://localhost:3000/health
+- FHIR Server (direct): http://localhost:8084
+   - FHIR metadata (basic auth): http://localhost:8084/fhir/metadata  (user: `admin`, pass: `admin123`)
+   - Actuator health: http://localhost:8084/actuator/health
+
+Run the smart_fhir_ingest demo:
+
+```bash
+# Unit tests (fast, uses SQLite)
+cd projects/smart-fhir-ingest/projects
+PYTHONPATH=. python3 -m pytest smart_fhir_ingest/tests/test_ingest.py -q
+
+# Full integration (starts demo Postgres, ingests, verifies, tears down)
+make integration-test
+```
+
+If ports conflict (host Postgres, Redis), see `docker-compose.dev.yml` for alternate port mappings used for local development (Postgres -> 15432, Redis -> 16379, PgAdmin -> 15050).
+
+
 ### API Gateway (Port 3000)
 **Technology**: Node.js + Express  
 **Purpose**: Authentication, routing, rate limiting

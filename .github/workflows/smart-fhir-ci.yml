@@ -28,4 +28,18 @@ jobs:
 
       - name: Run tests
         run: |
-          PYTHONPATH=. pytest -q smart_fhir_ingest/tests/test_ingest.py
+          PYTHONPATH=. pytest -q smart_fhir_ingest/tests/test_ingest.py --junitxml=reports/test-results.xml || true
+
+      - name: Compress test reports and upload
+        if: always()
+        run: |
+          mkdir -p reports
+          tar -czf smart-fhir-test-reports.tgz reports || true
+        shell: bash
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-fhir-test-reports
+          path: smart-fhir-test-reports.tgz
