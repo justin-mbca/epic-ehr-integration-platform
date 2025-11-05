@@ -453,3 +453,35 @@ For issues and questions:
 ---
 
 **Built with ❤️ for Healthcare Interoperability**
+
+## 🧪 Project demos
+
+This repository now includes small, self-contained demos and integration tests you can run locally or in CI to demonstrate data-engineering skills:
+
+- smart_fhir_ingest: a Python demo that parses a FHIR Patient bundle and ingests patient rows into a target database.
+   - Local mode: writes to SQLite (used by unit tests).
+   - Dev mode: docker-compose with a demo Postgres (exposed on host port 15433) for quick integration runs.
+   - CI mode: a GitHub Actions workflow (`.github/workflows/integration-runner.yml`) runs the integration end-to-end using Actions `services.postgres`.
+   - Files of interest:
+      - `projects/smart-fhir-ingest/projects/smart_fhir_ingest/ingest.py` — ingestion logic (SQLite + Postgres support)
+      - `projects/smart-fhir-ingest/projects/integration_test_runner.py` — runs compose -> ingest -> verify -> teardown
+      - `projects/smart-fhir-ingest/projects/docker-compose.yml` — demo Postgres for local runs
+      - `projects/smart-fhir-ingest/projects/Makefile` — `make integration-test` runs the end-to-end demo locally
+
+## 🗣️ Interview talking points (senior data engineer)
+
+Use these concise bullets to explain this project in interviews — each is backed by runnable code in the repo:
+
+- Built a reproducible local integration environment using Docker Compose and health-checked services (Postgres, Redis) to emulate production dependencies and validate end-to-end data flows.
+- Implemented a lightweight SMART-on-FHIR ingestion demo that parses FHIR R4 bundles and maps Patient resources to an analytics schema, demonstrating domain modeling and ETL design.
+- Added idempotent ingestion into Postgres with upsert semantics (ON CONFLICT) and a SQLite fallback for fast unit tests — shows concerns for testability and production safety.
+- Automated integration tests: `integration_test_runner.py` starts services, waits for readiness (`pg_isready`), runs ingestion, verifies results, and tears down — shows CI-first testing and repeatable pipelines.
+- CI-native integration: created a GitHub Actions workflow that uses `services.postgres` to run the same end-to-end test without docker-compose, proving the system works in ephemeral CI environments.
+- Minimal Airflow DAG scaffold that demonstrates how to schedule the ingestion as a repeatable job, and a dbt scaffold for simple downstream transformations — indicates orchestration and analytics engineering awareness.
+- Security and deployment considerations: handled secrets and credentials via environment variables and provided guidance to replace defaults before production; can discuss how to swap to Vault or a secrets manager.
+- Observability: added health endpoints and health checks in compose/workflows; can discuss metrics, logging strategy, and alerting paths for production readiness.
+- Troubleshooting and reliability: demonstrated iterative debugging (fixing build-time Java errors, container conflicts, and port remapping) and automated smoke-tests to catch regressions earlier.
+
+Quick rehearsal lines for interviews:
+
+"I built a small, production-like integration platform that processes FHIR bundles and writes to Postgres. I focused on testability — unit tests run against SQLite, and an automated integration test runs locally with docker-compose and in CI using Actions services. The pipeline is idempotent, health-checked, and easily schedulable with Airflow; dbt scaffolding shows how I'd implement analytics transformations next." 

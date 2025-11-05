@@ -1,0 +1,100 @@
+name: fhir-server CI
+
+on:
+  push:
+    paths:
+      - 'services/fhir-server/**'
+  pull_request:
+    paths:
+      - 'services/fhir-server/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Run Maven tests
+        working-directory: services/fhir-server
+        run: |
+          chmod +x mvnw
+          ./mvnw -B test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image (local tag)
+        working-directory: services/fhir-server
+        run: |
+          docker build --progress=plain -t epic/fhir-server:ci .
+
+      - name: Run fhir-server container for smoke test
+        working-directory: services/fhir-server
+        run: |
+          docker run -d --name fhir-server-ci -p 8080:8080 epic/fhir-server:ci || true
+
+      - name: Wait for server readiness and perform smoke check
+        working-directory: services/fhir-server
+        run: |
+          set -e
+          echo "Waiting for fhir-server to become healthy (timeout 60s)..."
+          for i in $(seq 1 30); do
+            if curl -sSf http://localhost:8080/fhir/metadata -o /tmp/fhir_metadata.json; then
+              echo "FHIR metadata endpoint is responsive"
+              cat /tmp/fhir_metadata.json | head -n 200
+              exit 0
+            fi
+            echo "not ready yet ($i)";
+            sleep 2
+          done
+          echo "FHIR server did not become ready in time" >&2
+          docker logs fhir-server-ci || true
+          exit 1
+
+      - name: Save Docker image artifact (tar)
+        if: always()
+        working-directory: services/fhir-server
+        run: |
+          docker save epic/fhir-server:ci -o fhir-server-ci-image.tar
+          mkdir -p $GITHUB_WORKSPACE/artifacts
+          mv fhir-server-ci-image.tar $GITHUB_WORKSPACE/artifacts/
+
+      - name: Collect container logs and smoke output
+        if: always()
+        working-directory: services/fhir-server
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/artifacts
+          docker logs fhir-server-ci > $GITHUB_WORKSPACE/artifacts/fhir-server-ci.log || true
+          if [ -f /tmp/fhir_metadata.json ]; then
+            mv /tmp/fhir_metadata.json $GITHUB_WORKSPACE/artifacts/fhir-metadata.json || true
+          fi
+
+      - name: Teardown container
+        if: always()
+        working-directory: services/fhir-server
+        run: |
+          docker rm -f fhir-server-ci || true
+
+      - name: Upload image and logs artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-server-image-and-logs
+          path: artifacts/

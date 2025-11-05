@@ -1,0 +1,3 @@
+- Built a SMART-on-FHIR ingestion demo that authenticates to a FHIR server, ingests Patient resources, and loads them into an analytics-ready table (SQLite prototype) for downstream analytics.
+- Implemented HL7-to-FHIR adapter patterns for ADT feeds and designed an audit trail for PHI-safe processing.
+- Designed containerized microservices and CI workflows to validate integration behavior and perform smoke tests for FHIR endpoints.

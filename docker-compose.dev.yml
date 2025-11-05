@@ -8,7 +8,8 @@ services:
       POSTGRES_USER: dev_user
       POSTGRES_PASSWORD: dev_password
     ports:
-      - "5433:5432"
+      # Remapped host port to avoid conflict with local Postgres
+      - "15432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     networks:
@@ -19,7 +20,8 @@ services:
     image: redis:7-alpine
     container_name: epic-redis-dev
     ports:
-      - "6380:6379"
+      # Remapped host port to avoid conflict with local Redis
+      - "16379:6379"
     networks:
       - epic-dev-network
 
@@ -31,7 +33,8 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@epic.local
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "5050:80"
+      # Remapped host port to avoid conflict with host services
+      - "15050:80"
     depends_on:
       - postgres-dev
     networks:

@@ -1,5 +1,6 @@
 # FHIR Server Dockerfile
-FROM openjdk:17-jdk-slim
+# Use Eclipse Temurin OpenJDK 17 (maintained and widely available)
+FROM eclipse-temurin:17-jdk
 
 # Set working directory
 WORKDIR /app

@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  demo-postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
+    ports:
+      - "15433:5432"
+    volumes:
+      - demo_pgdata:/var/lib/postgresql/data
+
+volumes:
+  demo_pgdata:
+    driver: local

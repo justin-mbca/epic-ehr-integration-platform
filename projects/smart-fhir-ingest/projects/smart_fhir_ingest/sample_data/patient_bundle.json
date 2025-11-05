@@ -1,0 +1,34 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "1",
+        "name": [
+          {
+            "family": "Doe",
+            "given": ["John"]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1980-01-01"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "2",
+        "name": [
+          {
+            "family": "Smith",
+            "given": ["Jane"]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1990-05-20"
+      }
+    }
+  ]
+}
